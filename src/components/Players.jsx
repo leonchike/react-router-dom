@@ -1,62 +1,42 @@
-import { useLocation, useSearchParams, Link } from "react-router-dom";
-import usePlayerNames from "../hooks/usePlayerNames";
-import { slugify } from "../utils";
+import * as React from 'react'
+import { useLocation, useSearchParams, Outlet } from 'react-router-dom'
+import usePlayerNames from '../hooks/usePlayerNames'
+import Sidebar from './Sidebar'
+import Loading from './Loading'
 
-const CustomLink = ({ to, children }) => {
-  const location = useLocation();
-  const playerId = location.pathname.split("/")[2];
-  const match = playerId === to;
+export default function Players () {
+  const location = useLocation()
+  const [searchParams] = useSearchParams(location.search)
+  const [team, setTeam] = React.useState(
+    searchParams.get('teamId')
+  )
 
-  const styles =
-    match === true ? { fontweight: 900, color: "var(--white)" } : {};
+  React.useEffect(() => {
+    if (location.search === '') {
+      searchParams.delete('teamId')
+      setTeam(null)
+    } else {
+      setTeam(searchParams.get('teamId'))
+    }
+  }, [location.search, searchParams])
 
-  return (
-    <li>
-      <Link
-        to={{
-          pathname: to,
-          search: location.search,
-        }}
-        style={{ ...styles }}
-      >
-        {children}
-      </Link>
-    </li>
-  );
-};
+  const {
+    response: names,
+    loading
+  } = usePlayerNames(team)
 
-const Sidebar = ({ title, list }) => {
-  return (
-    <div>
-      <h3 className="header">{title}</h3>
-      <ul className="sidebar-list">
-        {list.map((item) => (
-          <CustomLink key={item} to={slugify(item)}>
-            {item.toUpperCase()}
-          </CustomLink>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-const Players = () => {
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-
-  const team = searchParams.get("teamId");
-
-  const { response: names, loading } = usePlayerNames(team);
-
-  if (loading) {
-    return null;
+  if (loading === true) {
+    return <Loading />
   }
 
   return (
-    <div className="container">
-      <Sidebar title="Players" list={names} />
-    </div>
-  );
-};
+    <div className='container two-column'>
+      <Sidebar
+        title='Players'
+        list={names}
+      />
 
-export default Players;
+      <Outlet />
+    </div>
+  )
+}
